@@ -88,5 +88,4 @@ public:
 private:
 
 };
-#include "rfm22b_enums.h"
 #endif
