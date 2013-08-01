@@ -1,4 +1,4 @@
-CXXFLAGS=-I./include
+CXXFLAGS=-Wall -I./include
 
 all: rfm22b_test
 
