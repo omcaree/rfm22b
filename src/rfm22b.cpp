@@ -360,6 +360,14 @@ uint16_t RFM22B::getOperatingMode() {
 	return this->get16BitRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_1);
 }
 
+// Manuall enter RX or TX mode
+void RFM22B::enableRXMode() {
+	this->setOperatingMode(this->getOperatingMode() | RX_MODE);
+}
+void RFM22B::enableTXMode() {
+	this->setOperatingMode(this->getOperatingMode() | TX_MODE);
+}
+
 void RFM22B::setTXFIFOAlmostFullThreshold(uint8_t thresh) {
 	this->setFIFOThreshold(TX_FIFO_CONTROL_1, thresh);
 }
@@ -383,6 +391,54 @@ void RFM22B::setFIFOThreshold(RFM22B_Register reg, uint8_t thresh) {
 	thresh &= ((1 << 6) - 1);
 	this->setRegister(reg, thresh);
 }
+
+// Send data
+void RFM22B::send(uint8_t *data, int length) {
+	// Initialise rx and tx arrays
+	uint8_t tx[PACKET_LENGTH+1] = { 0 };
+	uint8_t rx[PACKET_LENGTH+1] = { 0 };
+	
+	// Set FIFO register address
+	tx[0] = FIFO_ACCESS | (1<<7);
+	
+	// Copy data from input array to tx array
+	for (int i = 1; i <= PACKET_LENGTH; i++) {
+		tx[i] = data[i-1];
+	}
+	
+	// Make the transfer
+	this->transfer(tx,rx,PACKET_LENGTH+1);
+	
+	// Enter TX mode
+	this->enableTXMode();
+};
+
+// Receive data (blocking)
+void RFM22B::receive(uint8_t *data, int length) {
+	// Enter RX mode
+	this->enableRXMode();
+	
+	// Initialise rx and tx arrays
+	uint8_t tx[PACKET_LENGTH+1] = { 0 };
+	uint8_t rx[PACKET_LENGTH+1] = { 0 };
+	
+	// Set FIFO register address
+	tx[0] = FIFO_ACCESS;
+	
+	// Set interrupt on packet received
+	this->setInterruptEnable(VALID_PACKET_RECEIVED, true);
+	
+	// Loop endlessly on interrupt
+	while (!this->getInterruptStatus(VALID_PACKET_RECEIVED)) {}
+	
+	// Make the transfer
+	this->transfer(tx,rx,PACKET_LENGTH+1);
+	
+	// Copy the data to the output array
+	for (int i = 1; i <= length; i++) {
+		data[i-1] = rx[i];
+	}
+};
 
 // Helper function to read a single byte from the device
 uint8_t RFM22B::getRegister(uint8_t reg) {

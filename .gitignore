@@ -1,2 +1,4 @@
-rfm22b_test
+rfm22b_setup_test
+rfm22b_send_test
+rfm22b_receive_test
 src/*.o

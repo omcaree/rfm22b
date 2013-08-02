@@ -231,4 +231,5 @@ enum RFM22B_Operating_Mode {
 	ENABLE_LOW_BATTERY_DETECT					= (1 << 14),
 	RESET										= (1 << 15)
 };
+
 #endif

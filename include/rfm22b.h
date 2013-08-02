@@ -95,6 +95,10 @@ public:
 	// Get operating mode (bitwise-ORed)
 	uint16_t getOperatingMode();
 	
+	// Manually enable RX or TX modes
+	void enableRXMode();
+	void enableTXMode();
+	
 	// Get and set all the FIFO threshold
 	void setTXFIFOAlmostFullThreshold(uint8_t thresh);
 	void setTXFIFOAlmostEmptyThreshold(uint8_t thresh);
@@ -103,6 +107,12 @@ public:
 	uint8_t getTXFIFOAlmostEmptyThreshold();
 	uint8_t getRXFIFOAlmostFullThreshold();
 	
+	// Send data
+	void send(uint8_t *data, int length);
+	
+	// Receive data (blocking). Returns number of bytes received
+	void receive(uint8_t *data, int length);
+	
 	// Helper functions for getting and getting individual registers
 	uint8_t getRegister(uint8_t reg);
 	uint16_t get16BitRegister(uint8_t reg);
@@ -110,6 +120,7 @@ public:
 	void set16BitRegister(uint8_t reg, uint16_t value);
 	
 private:
+	static const uint8_t PACKET_LENGTH = 16;
 	void setFIFOThreshold(RFM22B_Register reg, uint8_t thresh);
 
 };
