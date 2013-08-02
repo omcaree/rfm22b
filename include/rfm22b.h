@@ -87,6 +87,14 @@ public:
 	// Get the status of an interrupt
 	bool getInterruptStatus(RFM22B_Interrupt interrupt);
 	
+	// Set the operating mode
+	//	This function does not toggle individual pins as with other functions
+	//	It expects a bitwise-ORed combination of the modes you want set
+	void setOperatingMode(uint16_t mode);
+	
+	// Get operating mode (bitwise-ORed)
+	uint16_t getOperatingMode();
+	
 	// Helper functions for getting and getting individual registers
 	uint8_t getRegister(uint8_t reg);
 	uint16_t get16BitRegister(uint8_t reg);

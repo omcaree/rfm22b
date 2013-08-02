@@ -9,8 +9,8 @@ enum RFM22B_Register {
 	INTERRUPT_STATUS_2							= 0x04,
 	INTERRUPT_ENABLE_1							= 0x05,
 	INTERRUPT_ENABLE_2							= 0x06,
-	OPERATING_AND_FUNCTION_CONTROL_1			= 0x07,
-	OPERATING_AND_FUNCTION_CONTROL_2			= 0x08,
+	OPERATING_MODE_AND_FUNCTION_CONTROL_1		= 0x07,
+	OPERATING_MODE_AND_FUNCTION_CONTROL_2		= 0x08,
 	CRYSTAL_OSCILLATOR_LOAD_CAPACITANCE			= 0x09,
 	MICROCONTROLLER_OUTPUT_CLOCK				= 0x0A,
 	GPIO0_CONFIGURATION							= 0x0B,
@@ -211,5 +211,24 @@ enum RFM22B_Interrupt {
 	TX_FIFO_ALMOST_EMPTY_INT					= (1 << 13),
 	TX_FIFO_ALMOST_FULL_INT						= (1 << 14),
 	FIFO_UNDERFLOW_OVERFLOW						= (1 << 15)
+};
+
+// Currently no support for antenna diversity settings
+// Treat registers 1 and 2 as a single 16 bit register (as above)
+enum RFM22B_Operating_Mode {
+	TX_FIFO_RESET								= (1 << 0),
+	RX_FIFO_RESET								= (1 << 1),
+	LOW_DUTY_CYCLE_MODE							= (1 << 2),
+	AUTOMATIC_TRANSMISSION						= (1 << 3),
+	RX_MULTI_PACKET								= (1 << 4),
+//	Antenna diversity (bits 5-7) not supported
+	READY_MODE									= (1 << 8),
+	TUNE_MODE									= (1 << 9),
+	RX_MODE										= (1 << 10),
+	TX_MODE										= (1 << 11),
+	CRYSTAL_OSCILLATOR_SELECT					= (1 << 12),
+	ENABLE_WAKE_UP_TIMER						= (1 << 13),
+	ENABLE_LOW_BATTERY_DETECT					= (1 << 14),
+	RESET										= (1 << 15)
 };
 #endif

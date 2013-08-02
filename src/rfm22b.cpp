@@ -319,6 +319,7 @@ uint8_t RFM22B::getGPIOFunction(RFM22B_GPIO gpio) {
 	return gpioX & ((1<<5)-1);
 }
 
+// Enable or disable interrupts
 void RFM22B::setInterruptEnable(RFM22B_Interrupt interrupt, bool enable) {
 	// Get the (16 bit) register value
 	uint16_t intEnable = this->get16BitRegister(INTERRUPT_ENABLE_1);
@@ -334,6 +335,7 @@ void RFM22B::setInterruptEnable(RFM22B_Interrupt interrupt, bool enable) {
 	this->set16BitRegister(INTERRUPT_ENABLE_1, intEnable);
 }
 
+// Get the status of an interrupt
 bool RFM22B::getInterruptStatus(RFM22B_Interrupt interrupt) {
 	// Get the (16 bit) register value
 	uint8_t intStatus = this->getRegister(INTERRUPT_STATUS_1);
@@ -344,6 +346,18 @@ bool RFM22B::getInterruptStatus(RFM22B_Interrupt interrupt) {
 	} else {
 		return false;
 	}
+}
+
+// Set the operating mode
+//	This function does not toggle individual pins as with other functions
+//	It expects a bitwise-ORed combination of the modes you want set
+void RFM22B::setOperatingMode(uint16_t mode) {
+	this->set16BitRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_1, mode);
+}
+
+// Get operating mode (bitwise-ORed)
+uint16_t RFM22B::getOperatingMode() {
+	return this->get16BitRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_1);
 }
 
 // Helper function to read a single byte from the device
