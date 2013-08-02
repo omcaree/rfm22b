@@ -320,63 +320,26 @@ uint8_t RFM22B::getGPIOFunction(RFM22B_GPIO gpio) {
 }
 
 void RFM22B::setInterruptEnable(RFM22B_Interrupt interrupt, bool enable) {
-	// Interrupt Enable register
-	RFM22B_Register intEnableReg;
-	
-	// Interrupt Enable bit
-	uint8_t intEn;
-
-	// If bit is set in highest byte, use Interrupt Enable 1
-	if (interrupt > (1 << 7)) {
-		// High byte is only relevent one so extract it
-		intEn = (interrupt >> 8);
-		
-		// Get the register value
-		intEnableReg = INTERRUPT_ENABLE_1;
-		
-	} else {	// Otherwise use Interrupt Enable 2
-		intEn = (interrupt) & 0xFF;
-		intEnableReg = INTERRUPT_ENABLE_2;
-	}
-	
-	// Get the register value
-	uint8_t intEnable = this->getRegister(intEnableReg);
+	// Get the (16 bit) register value
+	uint16_t intEnable = this->get16BitRegister(INTERRUPT_ENABLE_1);
 	
 	// Either enable or disable the interrupt
 	if (enable) {
-		intEnable |= intEn;
+		intEnable |= interrupt;
 	} else {
-		intEnable &= ~intEn;
+		intEnable &= ~interrupt;
 	}
 	
-	// Set the register value
-	this->setRegister(intEnableReg, intEnable);
+	// Set the (16 bit) register value
+	this->set16BitRegister(INTERRUPT_ENABLE_1, intEnable);
 }
 
 bool RFM22B::getInterruptStatus(RFM22B_Interrupt interrupt) {
-	// Interrupt Status register
-	RFM22B_Register intStatusReg;
-	
-	// Interrupt Status bit
-	uint8_t intStat;
-
-	// If bit is set in highest byte, use Interrupt Status 1
-	if (interrupt > (1 << 7)) {
-		// High byte is only relevent one so extract it
-		intStat = (interrupt >> 8);
-		
-		// Get the register value
-		intStatusReg = INTERRUPT_STATUS_1;
-		
-	} else {	// Otherwise use Interrupt Status 2
-		intStat = (interrupt) & 0xFF;
-		intStatusReg = INTERRUPT_STATUS_2;
-	}
-	// Get the register value
-	uint8_t intStatus = this->getRegister(intStatusReg);
+	// Get the (16 bit) register value
+	uint8_t intStatus = this->getRegister(INTERRUPT_STATUS_1);
 	
 	// Determine if interrupt bit is set and return
-	if ((intStatus & intStat) > 0) {
+	if ((intStatus & interrupt) > 0) {
 		return true;
 	} else {
 		return false;
@@ -400,6 +363,18 @@ uint8_t RFM22B::getRegister(uint8_t reg) {
 	return rx[1];
 }
 
+// Similar to function above, but for readying 2 consequtive registers as one
+uint16_t RFM22B::get16BitRegister(uint8_t reg) {
+	uint8_t tx[] = {0x00, 0x00, 0x00};
+	uint8_t rx[] = {0x00, 0x00, 0x00};
+	
+	tx[0] = reg;
+	
+	this->transfer(tx,rx,3);
+
+	return (rx[1] << 8) | rx[2];
+}
+
 // Helper function to write a single byte to a register
 void RFM22B::setRegister(uint8_t reg, uint8_t value) {
 	// tx and rx arrays required even though we aren't receiving anything
@@ -414,4 +389,21 @@ void RFM22B::setRegister(uint8_t reg, uint8_t value) {
 	tx[1] = value;
 	
 	this->transfer(tx,rx,2);
+}
+
+// As above, but for 2 consequitive registers
+void RFM22B::set16BitRegister(uint8_t reg, uint16_t value) {
+	// tx and rx arrays required even though we aren't receiving anything
+	uint8_t tx[] = {0x00, 0x00, 0x00};
+	uint8_t rx[] = {0x00, 0x00, 0x00};
+	
+	// tx[0] is the requested register with the final bit set high to indicate
+	// a write operation (see Section 3.1 of the datasheet)
+	tx[0] = reg | (1<<7);
+	
+	// tx[1] is the value to be set
+	tx[1] = (value >> 8);
+	tx[2] = (value) & 0xFF;
+	
+	this->transfer(tx,rx,3);
 }

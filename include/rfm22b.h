@@ -89,7 +89,9 @@ public:
 	
 	// Helper functions for getting and getting individual registers
 	uint8_t getRegister(uint8_t reg);
+	uint16_t get16BitRegister(uint8_t reg);
 	void setRegister(uint8_t reg, uint8_t value);	
+	void set16BitRegister(uint8_t reg, uint16_t value);
 	
 private:
 
