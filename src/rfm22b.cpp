@@ -360,6 +360,30 @@ uint16_t RFM22B::getOperatingMode() {
 	return this->get16BitRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_1);
 }
 
+void RFM22B::setTXFIFOAlmostFullThreshold(uint8_t thresh) {
+	this->setFIFOThreshold(TX_FIFO_CONTROL_1, thresh);
+}
+void RFM22B::setTXFIFOAlmostEmptyThreshold(uint8_t thresh) {
+	this->setFIFOThreshold(TX_FIFO_CONTROL_2, thresh);
+}
+void RFM22B::setRXFIFOAlmostFullThreshold(uint8_t thresh) {
+	this->setFIFOThreshold(RX_FIFO_CONTROL, thresh);
+}
+uint8_t RFM22B::getTXFIFOAlmostFullThreshold() {
+	return this->getRegister(TX_FIFO_CONTROL_1);
+}
+uint8_t RFM22B::getTXFIFOAlmostEmptyThreshold() {
+	return this->getRegister(TX_FIFO_CONTROL_2);
+}
+uint8_t RFM22B::getRXFIFOAlmostFullThreshold() {
+	return this->getRegister(RX_FIFO_CONTROL);
+}
+
+void RFM22B::setFIFOThreshold(RFM22B_Register reg, uint8_t thresh) {
+	thresh &= ((1 << 6) - 1);
+	this->setRegister(reg, thresh);
+}
+
 // Helper function to read a single byte from the device
 uint8_t RFM22B::getRegister(uint8_t reg) {
 	// rx and tx arrays must be the same length
