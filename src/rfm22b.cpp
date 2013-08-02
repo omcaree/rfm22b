@@ -319,6 +319,70 @@ uint8_t RFM22B::getGPIOFunction(RFM22B_GPIO gpio) {
 	return gpioX & ((1<<5)-1);
 }
 
+void RFM22B::setInterruptEnable(RFM22B_Interrupt interrupt, bool enable) {
+	// Interrupt Enable register
+	RFM22B_Register intEnableReg;
+	
+	// Interrupt Enable bit
+	uint8_t intEn;
+
+	// If bit is set in highest byte, use Interrupt Enable 1
+	if (interrupt > (1 << 7)) {
+		// High byte is only relevent one so extract it
+		intEn = (interrupt >> 8);
+		
+		// Get the register value
+		intEnableReg = INTERRUPT_ENABLE_1;
+		
+	} else {	// Otherwise use Interrupt Enable 2
+		intEn = (interrupt) & 0xFF;
+		intEnableReg = INTERRUPT_ENABLE_2;
+	}
+	
+	// Get the register value
+	uint8_t intEnable = this->getRegister(intEnableReg);
+	
+	// Either enable or disable the interrupt
+	if (enable) {
+		intEnable |= intEn;
+	} else {
+		intEnable &= ~intEn;
+	}
+	
+	// Set the register value
+	this->setRegister(intEnableReg, intEnable);
+}
+
+bool RFM22B::getInterruptStatus(RFM22B_Interrupt interrupt) {
+	// Interrupt Status register
+	RFM22B_Register intStatusReg;
+	
+	// Interrupt Status bit
+	uint8_t intStat;
+
+	// If bit is set in highest byte, use Interrupt Status 1
+	if (interrupt > (1 << 7)) {
+		// High byte is only relevent one so extract it
+		intStat = (interrupt >> 8);
+		
+		// Get the register value
+		intStatusReg = INTERRUPT_STATUS_1;
+		
+	} else {	// Otherwise use Interrupt Status 2
+		intStat = (interrupt) & 0xFF;
+		intStatusReg = INTERRUPT_STATUS_2;
+	}
+	// Get the register value
+	uint8_t intStatus = this->getRegister(intStatusReg);
+	
+	// Determine if interrupt bit is set and return
+	if ((intStatus & intStat) > 0) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 // Helper function to read a single byte from the device
 uint8_t RFM22B::getRegister(uint8_t reg) {
 	// rx and tx arrays must be the same length

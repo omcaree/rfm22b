@@ -80,6 +80,12 @@ public:
 	// This should probably return enum, but this needs a lot of cases
 	uint8_t getGPIOFunction(RFM22B_GPIO gpio);
 	
+	// Enable or disable interrupts
+	// No ability to get interrupt enable status as this would need a lot of case statements
+	void setInterruptEnable(RFM22B_Interrupt interrupt, bool enable);
+	
+	// Get the status of an interrupt
+	bool getInterruptStatus(RFM22B_Interrupt interrupt);
 	
 	// Helper functions for getting and getting individual registers
 	uint8_t getRegister(uint8_t reg);
