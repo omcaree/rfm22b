@@ -28,6 +28,7 @@
 #ifndef rfm22b_h
 #define rfm22b_h
 
+#include <sys/time.h>
 #include "spi.h"
 
 class RFM22B : public SPI {
@@ -99,6 +100,17 @@ public:
 	void enableRXMode();
 	void enableTXMode();
 	
+	// Reset the device
+	void reset();
+	
+	// Set or get the trasmit header
+	void setTransmitHeader(uint32_t header);
+	uint32_t getTransmitHeader();
+	
+	// Set or get the check header
+	void setCheckHeader(uint32_t header);
+	uint32_t getCheckHeader();
+	
 	// Get and set all the FIFO threshold
 	void setTXFIFOAlmostFullThreshold(uint8_t thresh);
 	void setTXFIFOAlmostEmptyThreshold(uint8_t thresh);
@@ -107,20 +119,36 @@ public:
 	uint8_t getTXFIFOAlmostEmptyThreshold();
 	uint8_t getRXFIFOAlmostFullThreshold();
 	
+	// Get RSSI value
+	uint8_t getRSSI();
+	
+	// Get length of last received packet
+	uint8_t getReceivedPacketLength();
+	
+	// Set length of packet to be transmitted
+	void setTransmitPacketLength(uint8_t length);
+	
+	// Clear the FIFOs
+	void clearRXFIFO();
+	void clearTXFIFO();
+	
 	// Send data
 	void send(uint8_t *data, int length);
 	
-	// Receive data (blocking). Returns number of bytes received
-	void receive(uint8_t *data, int length);
+	// Receive data (blocking with timeout). Returns number of bytes received
+	int receive(uint8_t *data, int length, int timeout=30000);
 	
 	// Helper functions for getting and getting individual registers
 	uint8_t getRegister(uint8_t reg);
 	uint16_t get16BitRegister(uint8_t reg);
+	uint32_t get32BitRegister(uint8_t reg);
 	void setRegister(uint8_t reg, uint8_t value);	
 	void set16BitRegister(uint8_t reg, uint16_t value);
+	void set32BitRegister(uint8_t reg, uint32_t value);
 	
+	static const uint8_t MAX_PACKET_LENGTH = 64;
 private:
-	static const uint8_t PACKET_LENGTH = 16;
+	
 	void setFIFOThreshold(RFM22B_Register reg, uint8_t thresh);
 
 };

@@ -338,7 +338,7 @@ void RFM22B::setInterruptEnable(RFM22B_Interrupt interrupt, bool enable) {
 // Get the status of an interrupt
 bool RFM22B::getInterruptStatus(RFM22B_Interrupt interrupt) {
 	// Get the (16 bit) register value
-	uint8_t intStatus = this->getRegister(INTERRUPT_STATUS_1);
+	uint16_t intStatus = this->get16BitRegister(INTERRUPT_STATUS_1);
 	
 	// Determine if interrupt bit is set and return
 	if ((intStatus & interrupt) > 0) {
@@ -368,6 +368,28 @@ void RFM22B::enableTXMode() {
 	this->setOperatingMode(this->getOperatingMode() | TX_MODE);
 }
 
+// Reset the device
+void RFM22B::reset() {
+	this->setOperatingMode(this->getOperatingMode() | RESET);
+}
+
+// Set or get the trasmit header
+void RFM22B::setTransmitHeader(uint32_t header) {
+	this->set32BitRegister(TRANSMIT_HEADER_3, header);
+}
+uint32_t RFM22B::getTransmitHeader() {
+	return this->get32BitRegister(TRANSMIT_HEADER_3);
+}
+
+// Set or get the check header
+void RFM22B::setCheckHeader(uint32_t header) {
+	this->set32BitRegister(CHECK_HEADER_3, header);
+}
+uint32_t RFM22B::getCheckHeader() {
+	return this->get32BitRegister(CHECK_HEADER_3);
+}
+
+// Get and set all the FIFO threshold
 void RFM22B::setTXFIFOAlmostFullThreshold(uint8_t thresh) {
 	this->setFIFOThreshold(TX_FIFO_CONTROL_1, thresh);
 }
@@ -386,41 +408,75 @@ uint8_t RFM22B::getTXFIFOAlmostEmptyThreshold() {
 uint8_t RFM22B::getRXFIFOAlmostFullThreshold() {
 	return this->getRegister(RX_FIFO_CONTROL);
 }
-
 void RFM22B::setFIFOThreshold(RFM22B_Register reg, uint8_t thresh) {
 	thresh &= ((1 << 6) - 1);
 	this->setRegister(reg, thresh);
 }
 
+// Get RSSI value
+uint8_t RFM22B::getRSSI() {
+	return this->getRegister(RECEIVED_SIGNAL_STRENGTH_INDICATOR);
+}
+
+// Get length of last received packet
+uint8_t RFM22B::getReceivedPacketLength() {
+	return this->getRegister(RECEIVED_PACKET_LENGTH);
+}
+
+// Set length of packet to be transmitted
+void RFM22B::setTransmitPacketLength(uint8_t length) {
+	return this->setRegister(TRANSMIT_PACKET_LENGTH, length);
+}
+
+void RFM22B::clearRXFIFO() {
+	//Toggle ffclrrx bit high and low to clear RX FIFO
+	this->setRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_2, 2);
+	this->setRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_2, 0);
+}
+
+void RFM22B::clearTXFIFO() {
+	//Toggle ffclrtx bit high and low to clear TX FIFO
+	this->setRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_2, 1);
+	this->setRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_2, 0);
+}
+
 // Send data
 void RFM22B::send(uint8_t *data, int length) {
 	// Initialise rx and tx arrays
-	uint8_t tx[PACKET_LENGTH+1] = { 0 };
-	uint8_t rx[PACKET_LENGTH+1] = { 0 };
+	uint8_t tx[MAX_PACKET_LENGTH+1] = { 0 };
+	uint8_t rx[MAX_PACKET_LENGTH+1] = { 0 };
 	
-	// Set FIFO register address
+	// Set FIFO register address (with write flag)
 	tx[0] = FIFO_ACCESS | (1<<7);
 	
+	// Truncate data if its too long
+	if (length > MAX_PACKET_LENGTH) {
+		length = MAX_PACKET_LENGTH;
+	}
+	
 	// Copy data from input array to tx array
-	for (int i = 1; i <= PACKET_LENGTH; i++) {
+	for (int i = 1; i <= length; i++) {
 		tx[i] = data[i-1];
 	}
 	
+	// Set the packet length
+	this->setTransmitPacketLength(length);
+	
 	// Make the transfer
-	this->transfer(tx,rx,PACKET_LENGTH+1);
+	this->transfer(tx,rx,length+1);
 	
 	// Enter TX mode
 	this->enableTXMode();
 };
 
-// Receive data (blocking)
-void RFM22B::receive(uint8_t *data, int length) {
-	// Enter RX mode
-	this->enableRXMode();
-	
+// Receive data (blocking with timeout). Returns number of bytes received
+int RFM22B::receive(uint8_t *data, int length, int timeout) {
+	// Make sure RX FIFO is empty, ready for new data
+	this->clearRXFIFO();
+
 	// Initialise rx and tx arrays
-	uint8_t tx[PACKET_LENGTH+1] = { 0 };
-	uint8_t rx[PACKET_LENGTH+1] = { 0 };
+	uint8_t tx[MAX_PACKET_LENGTH+1] = { 0 };
+	uint8_t rx[MAX_PACKET_LENGTH+1] = { 0 };
 	
 	// Set FIFO register address
 	tx[0] = FIFO_ACCESS;
@@ -428,16 +484,36 @@ void RFM22B::receive(uint8_t *data, int length) {
 	// Set interrupt on packet received
 	this->setInterruptEnable(VALID_PACKET_RECEIVED, true);
 	
-	// Loop endlessly on interrupt
-	while (!this->getInterruptStatus(VALID_PACKET_RECEIVED)) {}
+	// Timing for the interrupt loop timeout
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	long elapsed = 0;
+	
+	// Poll the interrupt to make sure it is cleared
+	this->getInterruptStatus(VALID_PACKET_RECEIVED);
+	
+	// Loop endlessly on interrupt or timeout
+	while (!this->getInterruptStatus(VALID_PACKET_RECEIVED) && elapsed/1000 < timeout) {
+		// Enter RX mode
+		this->enableRXMode();
+		
+		// Determine elapsed time
+		gettimeofday(&end, NULL);
+		elapsed = end.tv_usec - start.tv_usec;
+	}	
+	
+	// Get length of packet received
+	uint8_t rxLength = this->getReceivedPacketLength();
 	
 	// Make the transfer
-	this->transfer(tx,rx,PACKET_LENGTH+1);
+	this->transfer(tx,rx,rxLength+1);
 	
 	// Copy the data to the output array
-	for (int i = 1; i <= length; i++) {
+	for (int i = 1; i <= rxLength; i++) {
 		data[i-1] = rx[i];
 	}
+	
+	return rxLength;
 };
 
 // Helper function to read a single byte from the device
@@ -469,6 +545,18 @@ uint16_t RFM22B::get16BitRegister(uint8_t reg) {
 	return (rx[1] << 8) | rx[2];
 }
 
+// Similar to function above, but for readying 4 consequtive registers as one
+uint32_t RFM22B::get32BitRegister(uint8_t reg) {
+	uint8_t tx[] = {0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t rx[] = {0x00, 0x00, 0x00, 0x00, 0x00};
+	
+	tx[0] = reg;
+	
+	this->transfer(tx,rx,5);
+
+	return (rx[1] << 24) | (rx[2] << 16) | (rx[3] << 8) | rx[4];
+}
+
 // Helper function to write a single byte to a register
 void RFM22B::setRegister(uint8_t reg, uint8_t value) {
 	// tx and rx arrays required even though we aren't receiving anything
@@ -495,9 +583,28 @@ void RFM22B::set16BitRegister(uint8_t reg, uint16_t value) {
 	// a write operation (see Section 3.1 of the datasheet)
 	tx[0] = reg | (1<<7);
 	
-	// tx[1] is the value to be set
+	// tx[1-2] is the value to be set
 	tx[1] = (value >> 8);
 	tx[2] = (value) & 0xFF;
 	
 	this->transfer(tx,rx,3);
+}
+
+// As above, but for 4 consequitive registers
+void RFM22B::set32BitRegister(uint8_t reg, uint32_t value) {
+	// tx and rx arrays required even though we aren't receiving anything
+	uint8_t tx[] = {0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t rx[] = {0x00, 0x00, 0x00, 0x00, 0x00};
+	
+	// tx[0] is the requested register with the final bit set high to indicate
+	// a write operation (see Section 3.1 of the datasheet)
+	tx[0] = reg | (1<<7);
+	
+	// tx[1-4] is the value to be set
+	tx[1] = (value >> 24);
+	tx[2] = (value >> 16) & 0xFF;
+	tx[3] = (value >> 8) & 0xFF;
+	tx[4] = (value) & 0xFF;
+	
+	this->transfer(tx,rx,5);
 }
