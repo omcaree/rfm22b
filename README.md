@@ -1,7 +1,7 @@
 RFM22B C++ Class for Linux
 ==========================
 
-This project aims to be a complete Linux C++ class for the (HopeRF RFM22B wireless transceiver)[http://www.hoperf.com/rf_fsk/fsk/rfm22b.htm]. Setting the majority of control registers is handled through convenient member functions with the options defined as enums.
+This project aims to be a complete Linux C++ class for the [HopeRF RFM22B wireless transceiver](http://www.hoperf.com/rf_fsk/fsk/rfm22b.htm). Setting the majority of control registers is handled through convenient member functions with the options defined as enums.
 
 It has been developed on a pair of BeagleBone Blacks running Ubuntu, but it should work perfectly well on any Linux device with an SPI bus (e.g. Raspberry Pi). A simple SPI class is included to abstract this functionality, therefore with a little work this should be portable to other operating systems.
 
@@ -119,14 +119,14 @@ Output power in dBm (1-20)
 	
 GPIO Function (setGPIOFunction)
 -------------------------------
-Specify the function of the GPIOS. enums are used to specify which GPIO to configure and its configuration. Refer to rfm22b_enums.h or the (register description)[http://www.hoperf.com/upload/rf/AN440.pdf] for all the options. The most common use for the GPIOs is to switch the antenna between receive and transmit modes.
+Specify the function of the GPIOS. enums are used to specify which GPIO to configure and its configuration. Refer to rfm22b_enums.h or the [register description](http://www.hoperf.com/upload/rf/AN440.pdf) for all the options. The most common use for the GPIOs is to switch the antenna between receive and transmit modes.
 
 	myRadio->setGPIOFunction(RFM22B::GPIO0, RFM22B::TX_STATE);
 	myRadio->setGPIOFunction(RFM22B::GPIO1, RFM22B::RX_STATE);
 	
 Interrupts (setInterruptEnable and getInterruptStatus)
 ------------------------------------------------------
-Enable an interrupt and read its status. Refer to rfm22b_enums.h or the (register description)[http://www.hoperf.com/upload/rf/AN440.pdf] for all the options. The most common interrupt is VALID_PACKET_RECEIVED. This is used internally in the 'receive' function (see below)
+Enable an interrupt and read its status. Refer to rfm22b_enums.h or the [register description](http://www.hoperf.com/upload/rf/AN440.pdf) for all the options. The most common interrupt is VALID_PACKET_RECEIVED. This is used internally in the 'receive' function (see below)
 
 	myRadio->setInterruptEnable(VALID_PACKET_RECEIVED, true);
 	while (!myRadio->getInterruptStatus(VALID_PACKET_RECEIVED)) {
