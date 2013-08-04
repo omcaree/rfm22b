@@ -119,8 +119,9 @@ public:
 	uint8_t getTXFIFOAlmostEmptyThreshold();
 	uint8_t getRXFIFOAlmostFullThreshold();
 	
-	// Get RSSI value
+	// Get RSSI value or input dBm
 	uint8_t getRSSI();
+	int8_t getInputPower();
 	
 	// Get length of last received packet
 	uint8_t getReceivedPacketLength();

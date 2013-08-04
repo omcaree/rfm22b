@@ -126,14 +126,8 @@ void RFM22B::setDataRate(unsigned int rate) {
 		txdr = rate * ((1 << (16)) / 1E6);
 	}
 	
-	// Split up MSB and LSB
-	uint8_t txdr1 = (txdr >> 8);
-	uint8_t txdr0 = txdr & 0xff;
-	
 	// Set the data rate bytes
-	// TODO: could do this in one if we had writeArray
-	this->setRegister(TX_DATA_RATE_1, txdr1);
-	this->setRegister(TX_DATA_RATE_0, txdr0);
+	this->set16BitRegister(TX_DATA_RATE_1, txdr);
 	
 	// Set the scaling byte
 	this->setRegister(MODULATION_MODE_CONTROL_1, mmc1);
@@ -143,12 +137,7 @@ unsigned int RFM22B::getDataRate() {
 	uint8_t txdtrtscale = (this->getRegister(MODULATION_MODE_CONTROL_1) >> 5) & 1;
 
 	// Get the data rate registers
-	// TODO: could do this in one if we had readArray
-	uint8_t txdr1 = this->getRegister(TX_DATA_RATE_1);
-	uint8_t txdr0 = this->getRegister(TX_DATA_RATE_0);
-	
-	// Combine bytes
-	uint16_t txdr = (txdr1 << 8) | txdr0;
+	uint8_t txdr = this->get16BitRegister(TX_DATA_RATE_1);
 	
 	// Return the data rate (in bps, hence extra 1E3)
 	return (txdr * 1E6) / (1 << (16 + 5 * txdtrtscale));
@@ -362,15 +351,15 @@ uint16_t RFM22B::getOperatingMode() {
 
 // Manuall enter RX or TX mode
 void RFM22B::enableRXMode() {
-	this->setOperatingMode(this->getOperatingMode() | RX_MODE);
+	this->setOperatingMode(READY_MODE | RX_MODE);
 }
 void RFM22B::enableTXMode() {
-	this->setOperatingMode(this->getOperatingMode() | TX_MODE);
+	this->setOperatingMode(READY_MODE | TX_MODE);
 }
 
 // Reset the device
 void RFM22B::reset() {
-	this->setOperatingMode(this->getOperatingMode() | RESET);
+	this->setOperatingMode(READY_MODE | RESET);
 }
 
 // Set or get the trasmit header
@@ -417,6 +406,11 @@ void RFM22B::setFIFOThreshold(RFM22B_Register reg, uint8_t thresh) {
 uint8_t RFM22B::getRSSI() {
 	return this->getRegister(RECEIVED_SIGNAL_STRENGTH_INDICATOR);
 }
+// Get input power (in dBm)
+//	Coefficients approximated from the graph in Section 8.10 of the datasheet
+int8_t RFM22B::getInputPower() {
+	return 0.56*this->getRSSI()-128.8;
+}
 
 // Get length of last received packet
 uint8_t RFM22B::getReceivedPacketLength() {
@@ -442,6 +436,9 @@ void RFM22B::clearTXFIFO() {
 
 // Send data
 void RFM22B::send(uint8_t *data, int length) {
+	// Clear TX FIFO
+	this->clearTXFIFO();
+	
 	// Initialise rx and tx arrays
 	uint8_t tx[MAX_PACKET_LENGTH+1] = { 0 };
 	uint8_t rx[MAX_PACKET_LENGTH+1] = { 0 };
@@ -467,13 +464,21 @@ void RFM22B::send(uint8_t *data, int length) {
 	
 	// Enter TX mode
 	this->enableTXMode();
+
+	// Loop until packet has been sent (device has left TX mode)
+	while (((this->getRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_1)>>3) & 1)) {}
+	
+	return;
 };
 
 // Receive data (blocking with timeout). Returns number of bytes received
 int RFM22B::receive(uint8_t *data, int length, int timeout) {
 	// Make sure RX FIFO is empty, ready for new data
 	this->clearRXFIFO();
-
+	
+	// Enter RX mode
+	this->enableRXMode();
+		
 	// Initialise rx and tx arrays
 	uint8_t tx[MAX_PACKET_LENGTH+1] = { 0 };
 	uint8_t rx[MAX_PACKET_LENGTH+1] = { 0 };
@@ -481,26 +486,25 @@ int RFM22B::receive(uint8_t *data, int length, int timeout) {
 	// Set FIFO register address
 	tx[0] = FIFO_ACCESS;
 	
-	// Set interrupt on packet received
-	this->setInterruptEnable(VALID_PACKET_RECEIVED, true);
-	
 	// Timing for the interrupt loop timeout
 	struct timeval start, end;
     gettimeofday(&start, NULL);
 	long elapsed = 0;
 	
-	// Poll the interrupt to make sure it is cleared
-	this->getInterruptStatus(VALID_PACKET_RECEIVED);
-	
 	// Loop endlessly on interrupt or timeout
-	while (!this->getInterruptStatus(VALID_PACKET_RECEIVED) && elapsed/1000 < timeout) {
-		// Enter RX mode
-		this->enableRXMode();
-		
+	//	Don't use interrupt registers here as these don't seem to behave consistently
+	//	Watch the operating mode register for the device leaving RX mode. This is indicitive
+	//	of a valid packet being received
+	while (((this->getRegister(OPERATING_MODE_AND_FUNCTION_CONTROL_1)>>2) & 1) && elapsed < timeout) {
 		// Determine elapsed time
 		gettimeofday(&end, NULL);
-		elapsed = end.tv_usec - start.tv_usec;
+		elapsed = (end.tv_usec - start.tv_usec)/1000 + (end.tv_sec - start.tv_sec)*1000;
 	}	
+	
+	// If timeout occured, return -1
+	if (elapsed >= timeout) {
+		return -1;
+	}
 	
 	// Get length of packet received
 	uint8_t rxLength = this->getReceivedPacketLength();
