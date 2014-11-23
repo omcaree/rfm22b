@@ -56,7 +56,10 @@ public:
 	void setFrequencyDeviation(unsigned int deviation);
 	unsigned int getFrequencyDeviation();
 	
-	// Set or get the data rate (bps)
+	// Set or get the TX data rate (bps)
+	// NOTE: This does NOT configure the receive data rate! To properly set
+	// up the device for receiving, use the magic register values
+	// calculated using the Si443x-Register-Settings_RevB1.xls Excel sheet.
 	void setDataRate(unsigned int rate);
 	unsigned int getDataRate();
 	
