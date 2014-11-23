@@ -137,10 +137,10 @@ unsigned int RFM22B::getDataRate() {
 	uint8_t txdtrtscale = (this->getRegister(MODULATION_MODE_CONTROL_1) >> 5) & 1;
 
 	// Get the data rate registers
-	uint8_t txdr = this->get16BitRegister(TX_DATA_RATE_1);
+	uint16_t txdr = this->get16BitRegister(TX_DATA_RATE_1);
 	
 	// Return the data rate (in bps, hence extra 1E3)
-	return (txdr * 1E6) / (1 << (16 + 5 * txdtrtscale));
+	return ((unsigned int) txdr * 1E6) / (1 << (16 + 5 * txdtrtscale));
 	
 }
 
