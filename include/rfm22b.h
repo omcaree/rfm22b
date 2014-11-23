@@ -110,6 +110,14 @@ public:
 	// Set or get the check header
 	void setCheckHeader(uint32_t header);
 	uint32_t getCheckHeader();
+
+	// Set or get the CRC mode
+	void setCRCMode(RFM22B_CRC_Mode mode);
+	RFM22B_CRC_Mode getCRCMode();
+	
+	// Set or get the CRC polynominal
+	void setCRCPolynomial(RFM22B_CRC_Polynomial poly);
+	RFM22B_CRC_Polynomial getCRCPolynomial();
 	
 	// Get and set all the FIFO threshold
 	void setTXFIFOAlmostFullThreshold(uint8_t thresh);

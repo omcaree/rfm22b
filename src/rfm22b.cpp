@@ -378,6 +378,64 @@ uint32_t RFM22B::getCheckHeader() {
 	return this->get32BitRegister(CHECK_HEADER_3);
 }
 
+// Set or get the CRC mode
+void RFM22B::setCRCMode(RFM22B::RFM22B_CRC_Mode mode) {
+	uint8_t dac = this->getRegister(DATA_ACCESS_CONTROL);
+
+	dac &= ~0x24;
+
+	switch (mode) {
+	case CRC_DISABLED:
+		break;
+	case CRC_DATA_ONLY:
+		dac |= 0x24;
+		break;
+	case CRC_NORMAL:
+	default:
+		dac |= 0x04;
+		break;
+	}
+
+	this->setRegister(DATA_ACCESS_CONTROL, dac);
+}
+RFM22B::RFM22B_CRC_Mode RFM22B::getCRCMode() {
+	uint8_t dac = this->getRegister(DATA_ACCESS_CONTROL);
+
+	if (! (dac & 0x04)) {
+		return CRC_DISABLED;
+	}
+	if (dac & 0x20) {
+		return CRC_DATA_ONLY;
+	}
+	return CRC_NORMAL;
+}
+
+// Set or get the CRC polynomial
+void RFM22B::setCRCPolynomial(RFM22B::RFM22B_CRC_Polynomial poly) {
+	uint8_t dac = this->getRegister(DATA_ACCESS_CONTROL);
+
+	dac &= ~0x03;
+
+	dac |= poly;
+
+	this->setRegister(DATA_ACCESS_CONTROL, dac);
+}
+RFM22B::RFM22B_CRC_Polynomial RFM22B::getCRCPolynomial() {
+	uint8_t dac = this->getRegister(DATA_ACCESS_CONTROL);
+
+	switch (dac & 0x03) {
+	case 0:
+		return CCITT;
+	case 1:
+		return CRC16;
+	case 2:
+		return IEC16;
+	case 3:
+		return BIACHEVA;
+	}
+	return CRC16;
+}
+
 // Get and set all the FIFO threshold
 void RFM22B::setTXFIFOAlmostFullThreshold(uint8_t thresh) {
 	this->setFIFOThreshold(TX_FIFO_CONTROL_1, thresh);
