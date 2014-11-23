@@ -56,7 +56,10 @@ public:
 	void setFrequencyDeviation(unsigned int deviation);
 	unsigned int getFrequencyDeviation();
 	
-	// Set or get the data rate (bps)
+	// Set or get the TX data rate (bps)
+	// NOTE: This does NOT configure the receive data rate! To properly set
+	// up the device for receiving, use the magic register values
+	// calculated using the Si443x-Register-Settings_RevB1.xls Excel sheet.
 	void setDataRate(unsigned int rate);
 	unsigned int getDataRate();
 	
@@ -110,6 +113,14 @@ public:
 	// Set or get the check header
 	void setCheckHeader(uint32_t header);
 	uint32_t getCheckHeader();
+
+	// Set or get the CRC mode
+	void setCRCMode(RFM22B_CRC_Mode mode);
+	RFM22B_CRC_Mode getCRCMode();
+	
+	// Set or get the CRC polynominal
+	void setCRCPolynomial(RFM22B_CRC_Polynomial poly);
+	RFM22B_CRC_Polynomial getCRCPolynomial();
 	
 	// Get and set all the FIFO threshold
 	void setTXFIFOAlmostFullThreshold(uint8_t thresh);

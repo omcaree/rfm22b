@@ -146,6 +146,20 @@ enum RFM22B_Modulation_Data_Source {
 	PN9											= 0x03	
 };
 
+enum RFM22B_CRC_Mode {
+		CRC_DISABLED,
+		CRC_DATA_ONLY,
+		CRC_NORMAL,
+};
+
+enum RFM22B_CRC_Polynomial {
+	CCITT										= 0x00,
+	CRC16										= 0x01,
+	IEC16										= 0x02,
+	BIACHEVA									= 0x03,
+};
+#define BAICHEVA BIACHEVA // Seems like Biacheva is a typo in the data sheet
+
 enum RFM22B_Data_Clock_Configuration {
 	NONE										= 0x00,
 	GPIO										= 0x01,
