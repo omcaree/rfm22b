@@ -508,6 +508,10 @@ int RFM22B::receive(uint8_t *data, int length, int timeout) {
 	
 	// Get length of packet received
 	uint8_t rxLength = this->getReceivedPacketLength();
+
+	if (rxLength > length) {
+		rxLength = length;
+	}
 	
 	// Make the transfer
 	this->transfer(tx,rx,rxLength+1);
