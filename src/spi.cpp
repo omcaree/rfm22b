@@ -19,6 +19,7 @@
  */
  
 #include "spi.h"
+#include <string.h>
 
 // Constructor
 //	Opens the SPI device and sets up some default values
@@ -97,13 +98,15 @@ uint16_t SPI::getDelayUsecs() {
 // Transfer some data
 bool SPI::transfer(uint8_t *tx, uint8_t *rx, int length) {
    struct spi_ioc_transfer tr;
-   
+
+   memset(&tr,0,sizeof(tr));
    tr.tx_buf = (unsigned long)tx;	//tx and rx MUST be the same length!
    tr.rx_buf = (unsigned long)rx;
    tr.len = length;
    tr.delay_usecs = this->delay;
    tr.speed_hz = this->speed;       
    tr.bits_per_word = this->bits;
+   tr.cs_change = 0;
 
    int ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
    if (ret == 1) {
